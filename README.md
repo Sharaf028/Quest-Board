@@ -4,7 +4,7 @@
 
 # Quest Board
 
-**A playful, gamified todo app for daily tasks and study resources.**
+**A playful todo app for daily tasks and study resources.**
 
 🔗 **[Visit Quest Board](https://your-app.vercel.app)**
 
@@ -37,7 +37,6 @@ saved automatically, and there the next time you open the site.
 
 ## Tech stack
 
-| Layer      | Choice                                                        |
 |------------|-----------------------------------------------------------------|
 | Framework  | [Next.js](https://nextjs.org) (App Router, React)               |
 | Auth       | [NextAuth.js](https://next-auth.js.org) with Google OAuth       |
