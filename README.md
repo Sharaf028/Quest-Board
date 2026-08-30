@@ -1,7 +1,3 @@
-<div align="center">
-
-<img src="public/logo.png" alt="Quest Board logo" width="120" />
-
 # Quest Board
 
 **A playful todo app for daily tasks and study resources.**
@@ -37,12 +33,14 @@ saved automatically, and there the next time you open the site.
 
 ## Tech stack
 
-|------------|-----------------------------------------------------------------|
-| Framework  | [Next.js](https://nextjs.org) (App Router, React)               |
-| Auth       | [NextAuth.js](https://next-auth.js.org) with Google OAuth       |
-| Database   | [PostgreSQL](https://www.postgresql.org) via [Prisma](https://prisma.io) ORM |
-| Language   | TypeScript                                                      |
-| Styling    | Plain CSS (custom design system, no UI framework)  
+## Tech stack
+
+- Framework: Next.js (App Router, React)
+- Language: TypeScript
+- Auth: NextAuth.js with Google OAuth
+- Database: PostgreSQL
+- ORM: Prisma
+- CSS: Plain custom CSS, no UI framework
 ---
 
 Built with Next.js, NextAuth, Prisma, and PostgreSQL.
