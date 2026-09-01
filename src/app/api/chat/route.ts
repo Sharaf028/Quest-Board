@@ -131,7 +131,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents,
-          generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
         }),
       }
     );
