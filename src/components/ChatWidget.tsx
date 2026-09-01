@@ -58,7 +58,7 @@ export default function ChatWidget() {
           <div className="chat-messages">
             {messages.length === 0 && (
               <p className="chat-empty">
-                Ask me to help plan your day, break down a quest, or answer a study question.
+                Ask me about your quests, your saved resources, or to help plan your day.
               </p>
             )}
             {messages.map((m, i) => (
