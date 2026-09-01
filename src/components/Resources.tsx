@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Pagination from "./Pagination";
 
 type Link = {
   id: string;
@@ -9,6 +10,8 @@ type Link = {
   category: string;
   createdAt: string;
 };
+
+const PAGE_SIZE = 10;
 
 export default function Resources() {
   const [links, setLinks] = useState<Link[]>([]);
@@ -22,6 +25,7 @@ export default function Resources() {
   const [editUrl, setEditUrl] = useState("");
   const [editCategory, setEditCategory] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetch("/api/links")
@@ -36,17 +40,19 @@ export default function Resources() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [links]);
 
-  const visible = activeCategory === "ALL" ? links : links.filter((l) => (l.category || "General") === activeCategory);
+  const visible =
+    activeCategory === "ALL" ? links : links.filter((l) => (l.category || "General") === activeCategory);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, Link[]>();
-    for (const link of visible) {
-      const cat = link.category || "General";
-      if (!map.has(cat)) map.set(cat, []);
-      map.get(cat)!.push(link);
-    }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [visible]);
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const pageItems = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategory, links.length]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   async function addLink(e: React.FormEvent) {
     e.preventDefault();
@@ -175,68 +181,67 @@ export default function Resources() {
         {loading ? (
           <p className="empty-state show">Loading your links…</p>
         ) : (
-          grouped.map(([category, items]) => (
-            <div key={category} className="archive-group">
-              <h3 className="archive-date">{category}</h3>
-              <ul className="link-list">
-                {items.map((link) =>
-                  editingId === link.id ? (
-                    <li key={link.id} className="link-card editing">
-                      <span className="link-dot" />
-                      <span className="link-edit-fields">
-                        <input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          type="text"
-                          placeholder="Title"
-                          autoFocus
-                        />
-                        <input
-                          value={editUrl}
-                          onChange={(e) => setEditUrl(e.target.value)}
-                          type="url"
-                          placeholder="https://..."
-                        />
-                        <input
-                          value={editCategory}
-                          onChange={(e) => setEditCategory(e.target.value)}
-                          type="text"
-                          placeholder="Section"
-                          list="category-options"
-                        />
-                      </span>
-                      <button className="save-btn" onClick={() => saveEdit(link.id)}>
-                        Save
-                      </button>
-                      <button className="cancel-btn" onClick={cancelEdit}>
-                        Cancel
-                      </button>
-                    </li>
-                  ) : (
-                    <li key={link.id} className="link-card">
-                      <span className="link-dot" />
-                      <span className="link-info">
-                        <a href={link.url} target="_blank" rel="noopener noreferrer">
-                          {link.title || link.url}
-                        </a>
-                        <span className="link-url">{link.url}</span>
-                      </span>
-                      <button className="edit-btn" aria-label="Edit link" onClick={() => startEdit(link)}>
-                        ✎
-                      </button>
-                      <button className="del-btn" aria-label="Delete link" onClick={() => deleteLink(link.id)}>
-                        ×
-                      </button>
-                    </li>
-                  )
-                )}
-              </ul>
-            </div>
-          ))
+          <ul className="link-list">
+            {pageItems.map((link) =>
+              editingId === link.id ? (
+                <li key={link.id} className="link-card editing">
+                  <span className="link-dot" />
+                  <span className="link-edit-fields">
+                    <input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      type="text"
+                      placeholder="Title"
+                      autoFocus
+                    />
+                    <input
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                      type="url"
+                      placeholder="https://..."
+                    />
+                    <input
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      type="text"
+                      placeholder="Section"
+                      list="category-options"
+                    />
+                  </span>
+                  <button className="save-btn" onClick={() => saveEdit(link.id)}>
+                    Save
+                  </button>
+                  <button className="cancel-btn" onClick={cancelEdit}>
+                    Cancel
+                  </button>
+                </li>
+              ) : (
+                <li key={link.id} className="link-card">
+                  <span className="link-dot" />
+                  <span className="link-info">
+                    <a href={link.url} target="_blank" rel="noopener noreferrer">
+                      {link.title || link.url}
+                    </a>
+                    <span className="link-meta-row">
+                      <span className="link-url">{link.url}</span>
+                      <span className="tag-pill">{link.category || "General"}</span>
+                    </span>
+                  </span>
+                  <button className="edit-btn" aria-label="Edit link" onClick={() => startEdit(link)}>
+                    ✎
+                  </button>
+                  <button className="del-btn" aria-label="Delete link" onClick={() => deleteLink(link.id)}>
+                    ×
+                  </button>
+                </li>
+              )
+            )}
+          </ul>
         )}
         {!loading && links.length === 0 && (
           <p className="empty-state show">No links saved yet — drop a study resource here.</p>
         )}
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </section>
     </>
   );

@@ -835,3 +835,47 @@ section.panel{
 @media (max-width: 480px){
   .chat-widget{ right: 14px; bottom: 14px; }
 }
+
+/* ---------- Sort chip ---------- */
+.sort-chip{
+  margin-left: auto;
+  color: var(--purple);
+  border-color: var(--purple);
+}
+[data-theme="dark"] .sort-chip{ color: var(--purple); }
+
+/* ---------- Pagination ---------- */
+.pagination{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap: 14px;
+  margin-top: 18px;
+}
+.page-btn{
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-2);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.page-btn:hover:not(:disabled){ border-color: var(--purple); color: var(--purple); }
+.page-btn:disabled{ opacity: 0.35; cursor: default; }
+.page-status{
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+/* ---------- Link meta row (url + category pill) ---------- */
+.link-meta-row{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.link-meta-row .link-url{ flex: 1; min-width: 60px; display: block; }

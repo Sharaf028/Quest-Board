@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Pagination from "./Pagination";
 
 type Tag = "STUDY" | "PERSONAL" | "PROJECT" | "OTHER";
+type SortDir = "asc" | "desc";
+
+const PAGE_SIZE = 10;
 
 type Todo = {
   id: string;
@@ -54,6 +58,8 @@ export default function QuestBoard() {
   const [todoTag, setTodoTag] = useState<Tag>("OTHER");
   const [todoDue, setTodoDue] = useState("");
   const [filterTag, setFilterTag] = useState<Tag | "ALL">("ALL");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
   const [stampedId, setStampedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +90,30 @@ export default function QuestBoard() {
   }, []);
 
   const active = todos.filter((t) => !t.done);
-  const visible = filterTag === "ALL" ? active : active.filter((t) => t.tag === filterTag);
+  const filtered = filterTag === "ALL" ? active : active.filter((t) => t.tag === filterTag);
+
+  const visible = useMemo(() => {
+    const withDue = filtered.filter((t) => t.dueDate);
+    const withoutDue = filtered.filter((t) => !t.dueDate);
+    withDue.sort((a, b) => {
+      const diff = new Date(a.dueDate as string).getTime() - new Date(b.dueDate as string).getTime();
+      return sortDir === "asc" ? diff : -diff;
+    });
+    // Tasks with no due date always trail behind dated ones, regardless of sort direction.
+    return [...withDue, ...withoutDue];
+  }, [filtered, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const pageItems = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterTag, sortDir, active.length]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   const doneToday = todos.filter(
     (t) => t.done && t.completedAt && t.completedAt.slice(0, 10) === todayKey()
   ).length;
@@ -255,10 +284,17 @@ export default function QuestBoard() {
                 {TAG_META[tag].icon} {TAG_META[tag].label}
               </button>
             ))}
+            <button
+              className="tag-chip sort-chip"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              title="Toggle sort direction by due date"
+            >
+              Due date {sortDir === "asc" ? "↑ soonest first" : "↓ latest first"}
+            </button>
           </div>
 
           <ul className="quest-list">
-            {visible.map((todo) => {
+            {pageItems.map((todo) => {
               const tag = safeTag(todo.tag);
               const due = todo.dueDate ? formatDue(todo.dueDate) : null;
 
@@ -342,6 +378,7 @@ export default function QuestBoard() {
                 : "No quests with this tag right now."}
             </p>
           )}
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </section>
       )}
     </>
