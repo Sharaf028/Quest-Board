@@ -35,9 +35,13 @@ export async function POST(req: Request) {
   const url = normalizeUrl(typeof body?.url === "string" ? body.url : "");
   if (!url) return NextResponse.json({ error: "A valid URL is required" }, { status: 400 });
   const title = typeof body?.title === "string" ? body.title.trim().slice(0, 200) : "";
+  const category =
+    typeof body?.category === "string" && body.category.trim()
+      ? body.category.trim().slice(0, 60)
+      : "General";
 
   const link = await prisma.link.create({
-    data: { url, title: title || null, userId: (session.user as { id: string }).id },
+    data: { url, title: title || null, category, userId: (session.user as { id: string }).id },
   });
   return NextResponse.json(link, { status: 201 });
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Link = {
   id: string;
   title: string | null;
   url: string;
+  category: string;
   createdAt: string;
 };
 
@@ -14,10 +15,13 @@ export default function Resources() {
   const [loading, setLoading] = useState(true);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [linkCategory, setLinkCategory] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editUrl, setEditUrl] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("ALL");
 
   useEffect(() => {
     fetch("/api/links")
@@ -27,17 +31,36 @@ export default function Resources() {
       .finally(() => setLoading(false));
   }, []);
 
+  const categories = useMemo(() => {
+    const set = new Set(links.map((l) => l.category || "General"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [links]);
+
+  const visible = activeCategory === "ALL" ? links : links.filter((l) => (l.category || "General") === activeCategory);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, Link[]>();
+    for (const link of visible) {
+      const cat = link.category || "General";
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(link);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [visible]);
+
   async function addLink(e: React.FormEvent) {
     e.preventDefault();
     const url = linkUrl.trim();
     if (!url) return;
     const title = linkTitle.trim();
+    const category = linkCategory.trim() || "General";
     setLinkTitle("");
     setLinkUrl("");
+    setLinkCategory("");
     const res = await fetch("/api/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, url }),
+      body: JSON.stringify({ title, url, category }),
     });
     if (res.ok) {
       const link = await res.json();
@@ -61,25 +84,25 @@ export default function Resources() {
     setEditingId(link.id);
     setEditTitle(link.title ?? "");
     setEditUrl(link.url);
+    setEditCategory(link.category || "General");
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setEditTitle("");
-    setEditUrl("");
   }
 
   async function saveEdit(id: string) {
     const url = editUrl.trim();
     if (!url) return;
     const title = editTitle.trim();
+    const category = editCategory.trim() || "General";
     const prev = links;
-    setLinks((cur) => cur.map((l) => (l.id === id ? { ...l, title: title || null, url } : l)));
+    setLinks((cur) => cur.map((l) => (l.id === id ? { ...l, title: title || null, url, category } : l)));
     setEditingId(null);
     const res = await fetch(`/api/links/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, url }),
+      body: JSON.stringify({ title, url, category }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -113,58 +136,103 @@ export default function Resources() {
             placeholder="https://..."
             autoComplete="off"
           />
+          <input
+            value={linkCategory}
+            onChange={(e) => setLinkCategory(e.target.value)}
+            type="text"
+            placeholder="Section (e.g. Compilers)"
+            list="category-options"
+            autoComplete="off"
+          />
+          <datalist id="category-options">
+            {categories.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
           <button type="submit">+ Save</button>
         </form>
+
+        {categories.length > 0 && (
+          <div className="tag-filters">
+            <button
+              className={`tag-chip${activeCategory === "ALL" ? " active" : ""}`}
+              onClick={() => setActiveCategory("ALL")}
+            >
+              All
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                className={`tag-chip${activeCategory === c ? " active" : ""}`}
+                onClick={() => setActiveCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <p className="empty-state show">Loading your links…</p>
         ) : (
-          <ul className="link-list">
-            {links.map((link) =>
-              editingId === link.id ? (
-                <li key={link.id} className="link-card editing">
-                  <span className="link-dot" />
-                  <span className="link-edit-fields">
-                    <input
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      type="text"
-                      placeholder="Title"
-                      autoFocus
-                    />
-                    <input
-                      value={editUrl}
-                      onChange={(e) => setEditUrl(e.target.value)}
-                      type="url"
-                      placeholder="https://..."
-                    />
-                  </span>
-                  <button className="save-btn" onClick={() => saveEdit(link.id)}>
-                    Save
-                  </button>
-                  <button className="cancel-btn" onClick={cancelEdit}>
-                    Cancel
-                  </button>
-                </li>
-              ) : (
-                <li key={link.id} className="link-card">
-                  <span className="link-dot" />
-                  <span className="link-info">
-                    <a href={link.url} target="_blank" rel="noopener noreferrer">
-                      {link.title || link.url}
-                    </a>
-                    <span className="link-url">{link.url}</span>
-                  </span>
-                  <button className="edit-btn" aria-label="Edit link" onClick={() => startEdit(link)}>
-                    ✎
-                  </button>
-                  <button className="del-btn" aria-label="Delete link" onClick={() => deleteLink(link.id)}>
-                    ×
-                  </button>
-                </li>
-              )
-            )}
-          </ul>
+          grouped.map(([category, items]) => (
+            <div key={category} className="archive-group">
+              <h3 className="archive-date">{category}</h3>
+              <ul className="link-list">
+                {items.map((link) =>
+                  editingId === link.id ? (
+                    <li key={link.id} className="link-card editing">
+                      <span className="link-dot" />
+                      <span className="link-edit-fields">
+                        <input
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          type="text"
+                          placeholder="Title"
+                          autoFocus
+                        />
+                        <input
+                          value={editUrl}
+                          onChange={(e) => setEditUrl(e.target.value)}
+                          type="url"
+                          placeholder="https://..."
+                        />
+                        <input
+                          value={editCategory}
+                          onChange={(e) => setEditCategory(e.target.value)}
+                          type="text"
+                          placeholder="Section"
+                          list="category-options"
+                        />
+                      </span>
+                      <button className="save-btn" onClick={() => saveEdit(link.id)}>
+                        Save
+                      </button>
+                      <button className="cancel-btn" onClick={cancelEdit}>
+                        Cancel
+                      </button>
+                    </li>
+                  ) : (
+                    <li key={link.id} className="link-card">
+                      <span className="link-dot" />
+                      <span className="link-info">
+                        <a href={link.url} target="_blank" rel="noopener noreferrer">
+                          {link.title || link.url}
+                        </a>
+                        <span className="link-url">{link.url}</span>
+                      </span>
+                      <button className="edit-btn" aria-label="Edit link" onClick={() => startEdit(link)}>
+                        ✎
+                      </button>
+                      <button className="del-btn" aria-label="Delete link" onClick={() => deleteLink(link.id)}>
+                        ×
+                      </button>
+                    </li>
+                  )
+                )}
+              </ul>
+            </div>
+          ))
         )}
         {!loading && links.length === 0 && (
           <p className="empty-state show">No links saved yet — drop a study resource here.</p>

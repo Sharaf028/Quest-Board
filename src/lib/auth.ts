@@ -22,5 +22,27 @@ export const authOptions: AuthOptions = {
       return session;
     },
   },
+  events: {
+    // NextAuth only saves name/email/image once, on first sign-in, and never
+    // re-syncs them from Google on later logins. This keeps the profile
+    // photo (and name) current every time the user signs in.
+    async signIn({ user, profile }) {
+      const googleProfile = profile as { name?: string; picture?: string } | undefined;
+      if (!googleProfile || !user.id) return;
+
+      const nextName = googleProfile.name;
+      const nextImage = googleProfile.picture;
+
+      if ((nextName && nextName !== user.name) || (nextImage && nextImage !== user.image)) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            ...(nextName ? { name: nextName } : {}),
+            ...(nextImage ? { image: nextImage } : {}),
+          },
+        });
+      }
+    },
+  },
   pages: {},
 };

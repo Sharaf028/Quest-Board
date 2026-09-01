@@ -27,7 +27,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 
   const body = await req.json().catch(() => ({}));
-  const data: { title?: string | null; url?: string } = {};
+  const data: { title?: string | null; url?: string; category?: string } = {};
 
   if (typeof body.title === "string") {
     data.title = body.title.trim().slice(0, 200) || null;
@@ -36,6 +36,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const url = normalizeUrl(body.url);
     if (!url) return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     data.url = url;
+  }
+  if (typeof body.category === "string" && body.category.trim()) {
+    data.category = body.category.trim().slice(0, 60);
   }
 
   const link = await prisma.link.update({ where: { id: params.id }, data });
